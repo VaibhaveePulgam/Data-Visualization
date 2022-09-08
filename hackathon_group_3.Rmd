@@ -1,0 +1,331 @@
+---
+title: "Hackathon_group 3"
+author: "Shivam, Vaibhavee"
+date: "2/16/2022"
+output: html_document
+---
+
+```{r echo=TRUE}
+# importing the libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(reshape2)
+library(ggalluvial)
+library(treemapify)
+library(corrplot)
+library(magrittr)
+library(gridExtra)
+library(cowplot)
+
+```
+
+```{r echo=TRUE}
+# importing the datasets
+cases_women <- read.csv('42_Cases_under_crime_against_women.csv')
+arrests_women <- read.csv('43_Arrests_under_crime_against_women.csv')
+human_right <- read.csv('35_Human_rights_violation_by_police.csv')
+property <- read.csv('10_Property_stolen_and_recovered.csv')
+kidnap <- read.csv('39_Specific_purpose_of_kidnapping_and_abduction.csv')
+trails <- read.csv('28_Trial_of_violent_crimes_by_courts.csv')
+cases <- read.csv('25_Complaints_against_police.csv')
+cases_women <- read.csv('42_Cases_under_crime_against_women.csv')
+auto_theft <- read.csv('30_Auto_theft.csv')
+crimes <- read.csv('01_District_wise_crimes_committed_IPC_2001_2012.csv')
+```
+
+## Task 6
+```{r echo=TRUE}
+# for overall India
+p61 <- cases_women %>% 
+  drop_na() %>% 
+  select(where(~ any(. != 0))) %>% 
+  select(Group_Name,Cases_Chargesheeted) %>% 
+  group_by(Group_Name) %>% 
+  summarise(num_of_cases = sum(Cases_Chargesheeted)) %>% 
+  filter(num_of_cases != 0)
+
+p61
+
+```
+```{r echo=TRUE}
+# state wise
+states <- cases_women %>% 
+  select(ï..Area_Name, Cases_Chargesheeted) %>% 
+  drop_na() %>% 
+  group_by(ï..Area_Name) %>% 
+  summarise(total_cases_for_state = sum(Cases_Chargesheeted)) %>% 
+  arrange(desc(total_cases_for_state))
+
+states
+```
+
+```{r echo=TRUE}
+# state wise
+AP <- cases_women %>% 
+  drop_na() %>% 
+  filter(ï..Area_Name == 'Andhra Pradesh') %>% 
+  select(Group_Name,Cases_Chargesheeted) %>% 
+  group_by(Group_Name) %>% 
+  summarise(num_of_cases = sum(Cases_Chargesheeted)) %>% 
+  ggplot(aes(x = "", y = num_of_cases, fill = Group_Name)) +
+  geom_col(aes(color = Group_Name)) +
+  coord_polar(theta = "y")+
+  scale_fill_discrete(labels =  )
+
+AP
+
+MP <- cases_women %>% 
+  drop_na() %>% 
+  filter(ï..Area_Name == 'Madhya Pradesh') %>% 
+  select(Group_Name,Cases_Chargesheeted) %>% 
+  group_by(Group_Name) %>% 
+  summarise(num_of_cases = sum(Cases_Chargesheeted)) %>% 
+  ggplot(aes(x = "", y = num_of_cases, fill = Group_Name)) +
+  geom_col(aes(color = Group_Name)) +
+  coord_polar(theta = "y")+
+  scale_fill_discrete(labels =  )
+
+MP
+# state wise
+UP <- cases_women %>% 
+  drop_na() %>% 
+  filter(ï..Area_Name == 'Uttar Pradesh') %>% 
+  select(Group_Name,Cases_Chargesheeted) %>% 
+  group_by(Group_Name) %>% 
+  summarise(num_of_cases = sum(Cases_Chargesheeted)) %>% 
+  ggplot(aes(x = "", y = num_of_cases, fill = Group_Name)) +
+  geom_col(aes(color = Group_Name)) +
+  coord_polar(theta = "y")+
+  scale_fill_discrete(labels =  )
+
+UP
+```
+## Task 7
+
+```{r echo=TRUE}
+human_right$Cases_Registered_under_Human_Rights_Violations <- as.integer(human_right$Cases_Registered_under_Human_Rights_Violations)
+
+
+p7 <- human_right %>% 
+  select(Group_Name, Cases_Registered_under_Human_Rights_Violations, Year) %>% 
+  drop_na() %>% 
+  group_by(Group_Name, Year) %>% 
+  summarise(total_violation_cases = sum(Cases_Registered_under_Human_Rights_Violations)) %>% 
+  pivot_wider(names_from=Group_Name, values_from = total_violation_cases) 
+
+names(p7) = gsub("_", " \n ", names(p7))
+
+
+p7 <- p7 %>% 
+  cor() %>%
+  corrplot.mixed(tl.col = "red", number.cex = 0.8, tl.cex = 0.5, lower.col
+                 = "black")
+
+p7
+```
+
+## Task 3
+
+```{r echo=TRUE}
+
+kidnap$K_A_Female_Total <- as.integer(kidnap$K_A_Female_Total)
+kidnap$K_A_Male_Total <- as.integer(kidnap$K_A_Male_Total)
+
+
+p3 <- kidnap %>% 
+  drop_na() %>% 
+  select(Year, Sub_Group_Name, K_A_Female_Total, K_A_Male_Total) %>% 
+  group_by(Sub_Group_Name, Year) %>% 
+  summarise(Female = sum(K_A_Female_Total), Male = sum(K_A_Male_Total)) %>% 
+  pivot_longer(!c(Sub_Group_Name, Year), names_to = "gender", values_to = "cases") %>% 
+  filter(Sub_Group_Name != '14. Total (Sum of 1-13 Above)' && Sub_Group_Name != '13. Other Purposes') %>% 
+  ggplot(aes(y = cases, axis1 = Sub_Group_Name, axis2 = Year), width = 1/12)+
+  scale_x_discrete(limits = c("Kidnapping", "Year"), expand = c(.02,.02))+
+  geom_alluvium(aes(fill = gender)) +  geom_stratum()+
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 2, min.y = 1000)+
+  theme(axis.text.y = element_text(size = 10), axis.text.x = element_text(size = 10))
+
+p3
+
+```
+
+## Task 5
+```{r echo=TRUE}
+trails$Trial_of_Violent_Crimes_by_Courts_Total <- as.integer(trails$Trial_of_Violent_Crimes_by_Courts_Total)
+
+p5 <- trails %>% 
+  drop_na() %>% 
+  select(Sub_Group_Name, Trial_of_Violent_Crimes_by_Courts_Total) %>% 
+  group_by(Sub_Group_Name) %>% 
+  summarise(total_trails = sum(Trial_of_Violent_Crimes_by_Courts_Total)) %>% 
+  filter(Sub_Group_Name != '12. Total Trials (Sum of 1-11 Above)') %>% 
+  ggplot(aes(area=total_trails, fill=Sub_Group_Name))+
+  geom_treemap()+
+  ggtitle("Different kind of trails from 2000 to 2010")+
+  theme(title = element_text(size = 8), legend.title = element_text(size = 10),legend.text = element_text(size=7))+
+  geom_treemap_text(aes(label = Sub_Group_Name), colour = "black", place = "centre", size = 7 )
+
+p5
+```
+
+## Task 4
+```{r echo=TRUE}
+cases$CPA_._Cases_Registered <- as.integer(cases$CPA_._Cases_Registered)
+cases$CPA_._Complaints.Cases_Declared_False.Unsubstantiated <-
+  as.integer(cases$CPA_._Complaints.Cases_Declared_False.Unsubstantiated)
+cases$CPA_._No_of_Departmental_Enquiries <- as.integer(cases$CPA_._No_of_Departmental_Enquiries)
+cases$CPB_._Police_Personnel_Convicted <- as.integer(cases$CPB_._Police_Personnel_Convicted)
+cases$CPC_._Police_Personnel_Dismissal.Removal_from_Service <- as.integer(cases$CPC_._Police_Personnel_Dismissal.Removal_from_Service)
+cases$CPC_._Police_Personnel_Major_Punishment_awarded <- as.integer(cases$CPC_._Police_Personnel_Major_Punishment_awarded)
+cases$CPC_._Police_Personnel_Minor_Punishment_awarded <- as.integer(cases$CPC_._Police_Personnel_Minor_Punishment_awarded)
+cases$CPA_._Cases_Reported_for_Dept._Action <- as.integer(cases$CPA_._Cases_Reported_for_Dept._Action)
+
+p4 <- cases %>% 
+  drop_na() %>%
+  rename(
+    Registered = CPA_._Cases_Registered,
+    Reported = CPA_._Cases_Reported_for_Dept._Action,
+    Declared_False = CPA_._Complaints.Cases_Declared_False.Unsubstantiated,
+    Enquiries = CPA_._No_of_Magisterial_Enquiries,
+    Convicted = CPB_._Police_Personnel_Convicted,
+    removed_from_service = CPC_._Police_Personnel_Dismissal.Removal_from_Service,
+    Major_punishment = CPC_._Police_Personnel_Major_Punishment_awarded,
+    Minor_punishment = CPC_._Police_Personnel_Minor_Punishment_awarded
+  ) %>% 
+  select(Year, Registered, Declared_False, Enquiries, Convicted, Major_punishment, Minor_punishment, removed_from_service, Reported) %>% 
+  group_by(Year) %>% 
+  summarise(Declared_False = sum(Declared_False), Enquiries = sum(Enquiries), Convicted =
+            sum(Convicted),removed_from_service = sum(removed_from_service), Major_punishment = sum(Major_punishment),
+            Minor_punishment = sum(Minor_punishment)) %>% 
+  pivot_longer(!Year, names_to = "case_category", values_to = "count") %>% 
+  ggplot(aes(x = reorder(case_category, count), y = count, fill = as.factor(Year))) + 
+    geom_bar(stat="sum")+coord_flip()
+
+p4
+```
+
+
+## Task1
+```{r echo=TRUE}
+p1_reported <- cases_women %>% 
+  drop_na() %>%
+  group_by(Group_Name, Year) %>% 
+  summarise(total_cases_reported = sum(Cases_Reported)) %>% 
+  ggplot(aes(x=Year, y=Group_Name, total_cases_reported)) + geom_tile(aes(fill= total_cases_reported), alpha=1)+
+  labs(title="Cases reported against women in various categories from 2001 to 2010", x="Year", y="Category", fill = "Difference")+
+  theme(plot.title = element_text(size= 8))+
+  scale_fill_distiller(palette = 5)
+
+p1_reported
+
+p1_convicted <- cases_women %>% 
+  drop_na() %>%
+  group_by(Group_Name, Year) %>% 
+  summarise(total_cases_convicted = sum(Cases_Convicted)) %>% 
+  ggplot(aes(x=Year, y=Group_Name, total_cases_convicted)) + geom_tile(aes(fill= total_cases_convicted), alpha=1)+
+  labs(title="Cases convicted against women in various categories from 2001 to 2010", x="Year", y="Category", fill = "Difference")+
+  theme(plot.title = element_text(size= 8))+
+  scale_fill_distiller(palette = 5)
+
+p1_convicted
+
+
+```
+
+## Task 8
+```{r echo=TRUE}
+auto_theft$Auto_Theft_Coordinated.Traced < as.integer(auto_theft$Auto_Theft_Coordinated.Traced)
+auto_theft$Auto_Theft_Recovered <- as.integer(auto_theft$Auto_Theft_Recovered)
+auto_theft$Auto_Theft_Stolen <- as.integer(auto_theft$Auto_Theft_Stolen)
+
+p8 <- property %>% 
+  group_by(Group_Name, ï..Area_Name) %>% 
+  drop_na() %>% 
+  summarise(recovered = sum(Cases_Property_Recovered), stolen
+            = sum(Cases_Property_Stolen)) %>% 
+  filter(Group_Name != "Total Property" && Group_Name != "Dacoity -Property" && Group_Name != "Other heads of Property" && Group_Name != "Criminal Breach of Trust - Property") %>% 
+  drop_na() %>% 
+  pivot_longer(!c(Group_Name, ï..Area_Name), names_to = 'category', values_to = 'count') %>% 
+  ggplot(aes(x=Group_Name, y=count, fill = category)) + 
+  geom_boxplot() + coord_flip()
+
+p8
+
+p8_vehicle <- auto_theft %>% 
+  group_by(Group_Name, ï..Area_Name) %>% 
+  drop_na() %>% 
+  summarise(recovered = sum(Auto_Theft_Recovered), stolen
+            = sum(Auto_Theft_Stolen)) %>% 
+  filter(Group_Name == "AT2-Motor Car/Taxi/Jeep" && Group_Name != "AT1-Motor Cycles/ Scooters") %>% 
+  drop_na() %>% 
+  pivot_longer(!c(Group_Name, ï..Area_Name), names_to = 'category', values_to = 'count') %>% 
+  ggplot(aes(x=Group_Name, y=count, fill = category)) + 
+  geom_boxplot() + coord_flip()
+
+p8_vehicle
+```
+
+## Task 2
+```{r echo=TRUE}
+
+p9_murder <- crimes %>% 
+  drop_na() %>% 
+  select(STATE.UT, YEAR, MURDER, ATTEMPT.TO.MURDER, KIDNAPPING...ABDUCTION, RAPE, ROBBERY, BURGLARY, RIOTS, ARSON) %>% 
+  filter(YEAR == 2001 | YEAR == 2012) %>%
+  group_by(STATE.UT, YEAR) %>% 
+  summarise(murder = sum(MURDER))%>%
+  pivot_longer(!c(YEAR, STATE.UT), names_to = 'category', values_to = 'count') %>% 
+  ggplot(aes(x= count, y= reorder(STATE.UT, count)))+
+  geom_line(aes(group = STATE.UT),color="grey")+
+  geom_point(aes(color=YEAR), size=1) 
+
+
+
+p9_rape <- crimes %>% 
+  drop_na() %>% 
+  select(STATE.UT, YEAR, MURDER, ATTEMPT.TO.MURDER, KIDNAPPING...ABDUCTION, RAPE, ROBBERY, BURGLARY, RIOTS, ARSON) %>% 
+  filter(YEAR == 2001 | YEAR == 2012) %>%
+  group_by(STATE.UT, YEAR) %>% 
+  summarise(rape = sum(RAPE))%>%
+  pivot_longer(!c(YEAR, STATE.UT), names_to = 'category', values_to = 'count') %>% 
+  ggplot(aes(x= count, y= reorder(STATE.UT, count)))+
+  geom_line(aes(group = STATE.UT),color="grey")+
+  geom_point(aes(color=YEAR), size=1) 
+
+plot_grid(p9_murder, p9_rape, labels = "AUTO")
+
+```
+
+#task 9
+```{r echo=TRUE}
+
+p9_l <- crimes %>% 
+  drop_na() %>% 
+  select(STATE.UT, YEAR, MURDER, ATTEMPT.TO.MURDER, KIDNAPPING...ABDUCTION, RAPE, ROBBERY, BURGLARY, RIOTS, ARSON) %>% 
+  group_by(STATE.UT, YEAR) %>% 
+  summarise(murder = sum(MURDER), attempt_to_murder = sum(ATTEMPT.TO.MURDER), kidnap = sum(KIDNAPPING...ABDUCTION),
+            rape = sum(RAPE), robbery = sum(ROBBERY), burglary = sum(BURGLARY), riots = sum(RIOTS), arson = sum(ARSON)) %>% pivot_longer(!c(YEAR, STATE.UT), names_to = 'category', values_to = 'count')%>%
+  ggplot(aes(x= count, y= category)) +
+    geom_point(aes(color=YEAR), size=4) +
+    theme(legend.position="top")
+  
+
+p9_l
+
+
+p9_line <- crimes %>% 
+  drop_na() %>% 
+  select(YEAR, MURDER, ATTEMPT.TO.MURDER, KIDNAPPING...ABDUCTION, RAPE, ROBBERY, BURGLARY, RIOTS, ARSON) %>% 
+  group_by(YEAR) %>% 
+  summarise(murder = sum(MURDER), attempt_to_murder = sum(ATTEMPT.TO.MURDER), kidnap = sum(KIDNAPPING...ABDUCTION),
+            rape = sum(RAPE), robbery = sum(ROBBERY), burglary = sum(BURGLARY), riots = sum(RIOTS), arson = sum(ARSON)) %>%pivot_longer(!YEAR, names_to = 'category', values_to = 'count') %>% 
+  ggplot(aes(x=YEAR, y=count, group = category)) +
+  geom_line(aes(color = category))+ scale_x_continuous(breaks= c(2000, 2005, 2010))
+  geom_point()
+
+p9_line
+
+
+
+```
